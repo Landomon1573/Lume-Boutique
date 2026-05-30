@@ -1,19 +1,17 @@
 import mysql.connector
 
-# Conexão com o Banco de Dados
 def conectar():
     try:
         return mysql.connector.connect(
-    host="localhost",
-    user="SEU_USUARIO",
-    password="SUA_SENHA",
-    database="lume_boutique"
-)
+            host="localhost",
+            user="seu_usuario",
+            password="sua_senha",
+            database="lume_boutique"
+        )
     except mysql.connector.Error as err:
         print(f"\n[ERRO DE CONEXÃO] Não foi possível conectar ao banco de dados: {err}")
         return None
 
-# Cadastro de Cliente/Usuário
 def cadastrar_usuario():
     conexao = conectar()
     if not conexao: return
@@ -36,7 +34,6 @@ def cadastrar_usuario():
         cursor.close()
         conexao.close()
 
-# Autenticação de Usuário (Login)
 def login():
     conexao = conectar()
     if not conexao: return None
@@ -57,10 +54,9 @@ def login():
         usuario = None
 
     cursor.close()
-    conexao.close()
+    connections = conexao.close()
     return usuario
 
-# Exibição de Categorias
 def listar_categorias():
     conexao = conectar()
     if not conexao: return
@@ -76,7 +72,6 @@ def listar_categorias():
     cursor.close()
     conexao.close()
 
-# Cadastro de Novo Produto
 def cadastrar_produto():
     listar_categorias()
     try:
@@ -105,7 +100,6 @@ def cadastrar_produto():
         cursor.close()
         conexao.close()
 
-# Listagem do Catálogo de Produtos
 def listar_produtos(pausa_no_final=False):
     conexao = conectar()
     if not conexao: return
@@ -131,7 +125,6 @@ def listar_produtos(pausa_no_final=False):
     if pausa_no_final:
         input("\nPressione Enter para voltar ao menu...")
 
-# Exclusão de Produto do Sistema
 def excluir_produto():
     try:
         id_produto = int(input("ID do produto a ser excluído: "))
@@ -143,15 +136,21 @@ def excluir_produto():
     if not conexao: return
     cursor = conexao.cursor()
 
-    sql = "DELETE FROM produtos WHERE id = %s"
-    cursor.execute(sql, (id_produto,))
-    conexao.commit()
-    print("\nProduto removido de sistema!")
-    
-    cursor.close()
-    conexao.close()
+    try:
+        sql = "DELETE FROM produtos WHERE id = %s"
+        cursor.execute(sql, (id_produto,))
+        conexao.commit()
+        print("\nProduto removido de sistema!")
+    except mysql.connector.Error as err:
+        # O erro 1451 é o código do MySQL para restrição de chave estrangeira
+        if err.errno == 1451:
+            print("\n Este produto não pode ser excluído porque está contido dentro de um pedido. Verifique o histórico de vendas.")
+        else:
+            print(f"\n[ERRO] Falha ao excluir produto: {err}")
+    finally:
+        cursor.close()
+        conexao.close()
 
-# Edição de Dados do Produto
 def editar_produto():
     listar_produtos()
     
@@ -220,7 +219,6 @@ def editar_produto():
     conexao.close()
     input("\nPressione Enter para voltar ao menu...")
 
-# Verificação do Status de Estoque
 def verificar_estoque(estoque):
     if estoque <= 0:
         return "Produto sem estoque!"
@@ -231,7 +229,6 @@ def verificar_estoque(estoque):
 
 carrinho = []
 
-# Adição de Item ao Carrinho
 def adicionar_carrinho():
     listar_produtos(pausa_no_final=False)
 
@@ -282,7 +279,6 @@ def adicionar_carrinho():
     carrinho.append(item)
     print(f"\n'{produto['nome']}' adicionado ao carrinho!")
 
-# Exibição do Carrinho de Compras
 def visualizar_carrinho(pausa_no_final=True):
     if not carrinho:
         print("\nSeu carrinho está vazio.")
@@ -302,7 +298,6 @@ def visualizar_carrinho(pausa_no_final=True):
         input("\nPressione Enter para voltar ao menu...")
     return True
 
-# Remoção de Item do Carrinho
 def remover_do_carrinho():
     carrinho_com_itens = visualizar_carrinho(pausa_no_final=False)
     if not carrinho_com_itens:
@@ -322,7 +317,6 @@ def remover_do_carrinho():
             
     print("\n[ERRO] Produto não encontrado no seu carrinho.")
 
-# Checkout e Finalização de Compra
 def finalizar_pedido(usuario_logado):
     if usuario_logado is None:
         print("\n[ERRO] Faça login primeiro para finalizar a compra!")
@@ -377,7 +371,6 @@ def finalizar_pedido(usuario_logado):
         conexao.close()
         input("\nPressione Enter para voltar ao menu...")
 
-# Menu do Painel Administrativo
 def painel_admin(usuario_logado):
     if usuario_logado is None:
         print("Faça login!")
@@ -411,10 +404,8 @@ def painel_admin(usuario_logado):
             break 
         else:
             print("Opção inválida!")
-
 usuario_logado = None
 
-# Loop do Menu Principal do Sistema
 while True:
     status_login = f"Logado como: {usuario_logado['nome']} ({usuario_logado['tipo']})" if usuario_logado else "Não logado"
     
@@ -448,7 +439,7 @@ while True:
     elif opcao == "8":
         painel_admin(usuario_logado)
     elif opcao == "0":
-        print("\nSistema Lume Boutique encerrado. Até logo!")
+        print("\nAgradecemos pela sua preferência. Até logo!")
         break
     else:
         print("\nOpção inválida! Tente novamente.")
